@@ -14,7 +14,7 @@ networks:
 services:
 
   explorerdb.mynetwork.com:
-    image: hyperledger/explorer-db:1.1.8
+    image: zghh/redactable-blockchain-explorer-database:1.1.8
     container_name: explorerdb.mynetwork.com
     hostname: explorerdb.mynetwork.com
     environment:

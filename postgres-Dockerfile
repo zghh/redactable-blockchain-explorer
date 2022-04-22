@@ -14,11 +14,12 @@ ENV DATABASE_USERNAME 	hppoc
 # default password for HLF Explorer db connection
 ENV DATABASE_PASSWORD 	password
 
-RUN apk update \
- && apk add jq \
- && apk add nodejs \
- && apk add sudo \
- && rm -rf /var/cache/apk/*
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories && \
+    apk update && \
+    apk add jq && \
+    apk add nodejs && \
+    apk add sudo && \
+    rm -rf /var/cache/apk/*
 
 WORKDIR /opt
 
