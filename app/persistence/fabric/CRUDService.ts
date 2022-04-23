@@ -47,8 +47,8 @@ export class CRUDService {
 	 * @memberof CRUDService
 	 */
 	getTransactionByID(network_name: any, channel_genesis_hash: any, txhash: any) {
-		const sqlTxById = ` select t.txhash,t.validation_code,t.payload_proposal_hash,t.creator_msp_id,t.endorser_msp_id,t.chaincodename,t.type,t.createdt,t.read_set,
-				t.write_set,channel.name as channelName from TRANSACTIONS as t inner join channel on t.channel_genesis_hash=channel.channel_genesis_hash and t.network_name=channel.network_name
+		const sqlTxById = ` select t.txhash,t.validation_code,t.payload_proposal_hash,t.creator_msp_id,t.endorser_msp_id,t.chaincodename,t.type,t.createdt,
+        t.chaincode_proposal_input,t.read_set,t.write_set,channel.name as channelName from TRANSACTIONS as t inner join channel on t.channel_genesis_hash=channel.channel_genesis_hash and t.network_name=channel.network_name
 				where t.txhash = $1 and t.network_name = $2 `;
 		return this.sql.getRowByPkOne(sqlTxById, [txhash, network_name]);
 	}
@@ -232,6 +232,9 @@ export class CRUDService {
 				[block.channel_genesis_hash, network_name]
 			);
 			return true;
+		} else {
+			await this.sql.updateRow('blocks', block, { blocknum: block.blocknum });
+			return true;
 		}
 
 		return false;
@@ -248,7 +251,7 @@ export class CRUDService {
 	 */
 	async saveTransaction(network_name, transaction) {
 		const c = await this.sql.getRowByPkOne(
-			'select count(1) as c from transactions where blockid=$1 and txhash=$2 and channel_genesis_hash=$3 and network_name = $4 ',
+			'select count(1) as c from transactions where blockid=$1 and txhash=$2 and channel_genesis_hash=$3 and network_name=$4 ',
 			[
 				transaction.blockid,
 				transaction.txhash,
@@ -261,17 +264,58 @@ export class CRUDService {
 			transaction.network_name = network_name;
 			await this.sql.saveRow('transactions', transaction);
 			await this.sql.updateBySql(
-				'update chaincodes set txcount =txcount+1 where channel_genesis_hash=$1 and network_name = $2 and name=$3',
+				'update chaincodes set txcount =txcount+1 where channel_genesis_hash=$1 and network_name=$2 and name=$3 ',
 				[transaction.channel_genesis_hash, network_name, transaction.chaincodename]
 			);
 			await this.sql.updateBySql(
-				'update channel set trans =trans+1 where channel_genesis_hash=$1 and network_name = $2 ',
+				'update channel set trans =trans+1 where channel_genesis_hash=$1 and network_name=$2 ',
 				[transaction.channel_genesis_hash, network_name]
 			);
+			return true;
+		} else {
+			await this.sql.updateRow('transactions', transaction, {
+				txhash: transaction.txhash
+			});
 			return true;
 		}
 
 		return false;
+	}
+
+	/**
+	 *
+	 *
+	 * @param {*} transaction
+	 * @returns
+	 * @memberof CRUDService
+	 */
+	async deleteTransactionFromBlock(network_name, blockNum) {
+		const c = await this.sql.getRowByPkOne(
+			'select count(*) as c from transactions where blockid=$1 and network_name=$2 ',
+			[blockNum, network_name]
+		);
+		await this.sql.updateBySql(
+			'delete from transactions where blockid=$1 and network_name=$2 ',
+			[blockNum, network_name]
+		);
+		await this.sql.updateBySql(
+			'update channel set trans =trans-$1 where network_name=$2 ',
+			[parseInt(c['c']), network_name]
+		);
+	}
+
+	/**
+	 *
+	 *
+	 * @param {*} transaction
+	 * @returns
+	 * @memberof CRUDService
+	 */
+	async deleteBlock(network_name, blockNum) {
+		await this.sql.updateBySql(
+			'delete from blocks where blocknum=$1 and network_name=$2 ',
+			[blockNum, network_name]
+		);
 	}
 
 	/**

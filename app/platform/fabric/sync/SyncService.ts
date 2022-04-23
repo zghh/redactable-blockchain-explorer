@@ -13,6 +13,8 @@ import { explorerError } from '../../../common/ExplorerMessage';
 import * as FabricConst from '../../../platform/fabric/utils/FabricConst';
 import * as FabricUtils from '../../../platform/fabric/utils/FabricUtils';
 
+const fabproto6 = require('fabric-protos');
+
 const logger = helper.getLogger('SyncServices');
 
 const fabric_const = FabricConst.fabric.const;
@@ -391,7 +393,7 @@ export class SyncServices {
 						result.missing_id
 					);
 					if (block) {
-						await this.processBlockEvent(client, block, noDiscovery);
+						await this.processBlockEvent(client, block, noDiscovery, false);
 					}
 				} catch {
 					logger.error(`Failed to process Block # ${result.missing_id}`);
@@ -456,7 +458,7 @@ export class SyncServices {
 	 * @returns
 	 * @memberof SyncServices
 	 */
-	async processBlockEvent(client, block, noDiscovery) {
+	async processBlockEvent(client, block, noDiscovery, deleteTransaction) {
 		const network_id = client.getNetworkId();
 		// Get the first transaction
 		const first_tx = block.data.data[0];
@@ -489,6 +491,15 @@ export class SyncServices {
 		}
 		this.blocksInProcess.push(blockPro_key);
 
+		if (deleteTransaction) {
+			await this.persistence
+				.getCrudService()
+				.deleteTransactionFromBlock(network_id, block.header.number.toString());
+			await this.persistence
+				.getCrudService()
+				.deleteBlock(network_id, block.header.number.toString());
+		}
+
 		if (
 			!noDiscovery &&
 			header.channel_header.typeString === fabric_const.BLOCK_TYPE_CONFIG
@@ -520,6 +531,8 @@ export class SyncServices {
 			blksize: jsonObjSize(block)
 		};
 		const txLen = block.data.data.length;
+		const redactBlockNum = [];
+		let redactBlock;
 		for (let txIndex = 0; txIndex < txLen; txIndex++) {
 			const txObj = block.data.data[txIndex];
 			const txStr = JSON.stringify(txObj);
@@ -596,9 +609,18 @@ export class SyncServices {
 						.chaincode_spec.input.args;
 				if (chaincode_proposal_input !== undefined) {
 					let inputs = '';
-					for (const input of chaincode_proposal_input) {
+					if (chaincode == 'lscc') {
+						const cds = fabproto6.protos.ChaincodeDeploymentSpec.decode(
+							chaincode_proposal_input[2]
+						);
 						inputs =
-							(inputs === '' ? inputs : `${inputs},`) + convertHex.bytesToHex(input);
+							chaincode_proposal_input[0].toString() +
+							',' +
+							chaincode_proposal_input[1].toString() +
+							',' +
+							cds.chaincode_spec.input.args.toString();
+					} else {
+						inputs = chaincode_proposal_input.toString();
 					}
 					chaincode_proposal_input = inputs;
 				}
@@ -621,6 +643,34 @@ export class SyncServices {
 					txObj.payload.data.last_update.payload?.data.config_update.read_set;
 				writeSet =
 					txObj.payload.data.last_update.payload?.data.config_update.write_set;
+			}
+
+			if (
+				txObj.payload.header.channel_header.typeString === 'REDACT_TRANSACTION'
+			) {
+				rwset =
+					txObj.payload.data.transaction[0].payload.data.actions[0].payload.action
+						.proposal_response_payload.extension.results.ns_rwset;
+				readSet = rwset.map(rw => ({
+					chaincode: rw.namespace,
+					set: rw.rwset.reads
+				}));
+				writeSet = rwset.map(rw => ({
+					chaincode: rw.namespace,
+					set: rw.rwset.writes
+				}));
+				for (const transaction of txObj.payload.data.transaction) {
+					redactBlockNum.push(transaction.block_number);
+				}
+			} else if (
+				txObj.payload.header.channel_header.typeString === 'REDACT_BLOCK'
+			) {
+				redactBlock = txObj.payload.data.block.header.number.toString();
+				for (const transaction of txObj.payload.data.transaction) {
+					redactBlockNum.push(transaction.block_number.toString());
+				}
+				readSet = {};
+				writeSet = {};
 			}
 
 			const read_set = JSON.stringify(readSet, null, 2);
@@ -716,6 +766,31 @@ export class SyncServices {
 
 		const index = this.blocksInProcess.indexOf(blockPro_key);
 		this.blocksInProcess.splice(index, 1);
+
+		if (redactBlock) {
+			try {
+				const block = await client.fabricGateway.queryBlock(
+					channel_name,
+					redactBlock
+				);
+				if (block) {
+					await this.processBlockEvent(client, block, noDiscovery, true);
+				}
+			} catch {
+				logger.error(`Failed to process Block # ${redactBlock}`);
+			}
+		}
+		for (const blockNum of redactBlockNum) {
+			try {
+				const block = await client.fabricGateway.queryBlock(channel_name, blockNum);
+				if (block) {
+					await this.processBlockEvent(client, block, noDiscovery, false);
+				}
+			} catch {
+				logger.error(`Failed to process Block # ${blockNum}`);
+			}
+		}
+
 		return true;
 	}
 

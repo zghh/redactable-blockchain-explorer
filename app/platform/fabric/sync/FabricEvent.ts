@@ -70,7 +70,8 @@ export class FabricEvent {
 						await this.fabricServices.processBlockEvent(
 							this.client,
 							event.blockData,
-							noDiscovery
+							noDiscovery,
+							false
 						);
 					}
 				},

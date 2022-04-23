@@ -148,6 +148,7 @@ export const refreshType = func;
 export const transactionType = shape({
 	chaincodename: string,
 	channelname: string,
+	args: string,
 	createdt: string,
 	creator_msp_id: string,
 	endorser_msp_id: string,

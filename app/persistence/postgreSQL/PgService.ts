@@ -271,10 +271,12 @@ export class PgService {
 		return new Promise((resolve, reject) => {
 			const addSqlParams = [];
 			const updateParms = [];
+			let i = 1;
 			Object.keys(columnAndValue).forEach(k => {
 				const v = columnAndValue[k];
 				addSqlParams.push(v);
-				updateParms.push(`${k} = ?`);
+				updateParms.push(`${k} = $${i}`);
+				i += 1;
 			});
 
 			let updatewhereparm = ' (1=1)  ';
@@ -283,7 +285,8 @@ export class PgService {
 				const v = condition[k];
 
 				addSqlParams.push(v);
-				updatewhereparm += ` and ${k}=? `;
+				updatewhereparm += ` and ${k}= $${i} `;
+				i += 1;
 			});
 
 			const updateParmsStr = updateParms.join(',');

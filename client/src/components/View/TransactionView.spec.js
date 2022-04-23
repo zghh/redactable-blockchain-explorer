@@ -58,6 +58,7 @@ const setup = () => {
 			endorser_msp_id: '{"Org1MSP"}',
 			chaincode_id: '',
 			type: 'ENDORSER_TRANSACTION',
+			args: 'invoke,a,b,10',
 			read_set: [
 				{
 					chaincode: 'lscc',
@@ -179,6 +180,7 @@ describe('TransactionView', () => {
 				endorser_msp_id: '{"Org1MSP"}',
 				chaincode_id: '',
 				type: 'ENDORSER_TRANSACTION',
+				args: 'invoke,a,b,10',
 				read_set: [
 					null,
 					{

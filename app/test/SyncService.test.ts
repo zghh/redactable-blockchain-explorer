@@ -129,8 +129,8 @@ describe('processBlockEvent', () => {
 	it('should return without error', async () => {
 		const stubClient = setupClient();
 
-		await expect(sync.processBlockEvent(stubClient, stubBlock, false)).eventually
-			.to.be.true;
+		await expect(sync.processBlockEvent(stubClient, stubBlock, false, false))
+			.eventually.to.be.true;
 		sinon.assert.calledOnce(stubPlatform.send);
 		sinon.assert.calledWith(
 			stubPlatform.send,
@@ -143,7 +143,7 @@ describe('processBlockEvent', () => {
 		const stubClient = setupClient();
 		sync.blocksInProcess = ['mychannel_9'];
 
-		await expect(sync.processBlockEvent(stubClient, stubBlock, false))
+		await expect(sync.processBlockEvent(stubClient, stubBlock, false, false))
 			.to.eventually.be.rejectedWith('Block already in processing')
 			.and.be.an.instanceOf(ExplorerError);
 		sinon.assert.notCalled(stubPlatform.send);
@@ -159,7 +159,7 @@ describe('processBlockEvent', () => {
 		const spyInsertDiscoveredCH = sinon.spy(sync, 'insertDiscoveredChannel');
 
 		const clock = sinon.useFakeTimers();
-		await expect(sync.processBlockEvent(stubClient, stubBlock, false))
+		await expect(sync.processBlockEvent(stubClient, stubBlock, false, false))
 			.to.eventually.be.rejectedWith('mychannel has not been inserted yet')
 			.and.be.an.instanceOf(ExplorerError);
 		clock.tick(20000);
@@ -175,8 +175,9 @@ describe('processBlockEvent', () => {
 		const spyUpdateDiscoveredCH = sinon.spy(sync, 'updateDiscoveredChannel');
 
 		const clock = sinon.useFakeTimers();
-		await expect(sync.processBlockEvent(stubClient, stubConfigBlock, false)).to
-			.eventually.to.be.true;
+		await expect(
+			sync.processBlockEvent(stubClient, stubConfigBlock, false, false)
+		).to.eventually.to.be.true;
 		clock.tick(20000);
 
 		sinon.assert.calledWith(
@@ -200,15 +201,17 @@ describe('processBlockEvent', () => {
 		const stubClient = setupClient();
 
 		stubConfigBlock.data.data[0].payload.data.last_update.payload = null;
-		await expect(sync.processBlockEvent(stubClient, stubConfigBlock, false)).to
-			.eventually.to.be.true;
+		await expect(
+			sync.processBlockEvent(stubClient, stubConfigBlock, false, false)
+		).to.eventually.to.be.true;
 	});
 
 	it('should be done without any errors when _lifecycle block is processed', async () => {
 		const stubClient = setupClient();
 
-		await expect(sync.processBlockEvent(stubClient, stubLifecycleBlock, false)).to
-			.eventually.to.be.true;
+		await expect(
+			sync.processBlockEvent(stubClient, stubLifecycleBlock, false, false)
+		).to.eventually.to.be.true;
 	});
 });
 

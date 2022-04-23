@@ -171,6 +171,10 @@ export class TransactionView extends Component {
 												<td>{transaction.type}</td>
 											</tr>
 											<tr>
+												<th>Args:</th>
+												<td>{transaction.chaincode_proposal_input}</td>
+											</tr>
+											<tr>
 												<th>Time:</th>
 												<td>{transaction.createdt}</td>
 											</tr>
