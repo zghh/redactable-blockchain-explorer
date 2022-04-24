@@ -29,6 +29,13 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 RUN cat node-prune.sh | bash -s -- -b /usr/local/bin
 
 # install NPM dependencies
+RUN mv redactable-fabric-sdk-node ../ && \
+    cd ../redactable-fabric-sdk-node/fabric-protos && npm install --registry=https://registry.npm.taobao.org && \
+    cd ../fabric-common && npm install --registry=https://registry.npm.taobao.org && \
+    cd ../fabric-network && npm install --registry=https://registry.npm.taobao.org && \
+    cd ../fabric-ca-client && npm install --registry=https://registry.npm.taobao.org && \
+    cd .. && npm install --registry=https://registry.npm.taobao.org && npm run compile
+
 RUN npm install --registry=https://registry.npm.taobao.org && npm run build && npm prune --production
 
 # build explorer app
@@ -63,6 +70,7 @@ COPY . .
 COPY --from=BUILD_IMAGE $EXPLORER_APP_PATH/dist ./app/
 COPY --from=BUILD_IMAGE $EXPLORER_APP_PATH/client/build ./client/build/
 COPY --from=BUILD_IMAGE $EXPLORER_APP_PATH/node_modules ./node_modules/
+COPY --from=BUILD_IMAGE $EXPLORER_APP_PATH/../redactable-fabric-sdk-node ./../redactable-fabric-sdk-node/
 
 # expose default ports
 EXPOSE 8080
