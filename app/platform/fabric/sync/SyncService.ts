@@ -794,6 +794,70 @@ export class SyncServices {
 		return true;
 	}
 
+	/**
+	 *
+	 *
+	 * @param {*} client
+	 * @param {*} block
+	 * @returns
+	 */
+	async processRedactBlockEvent(client, redactBlock) {
+		const first_tx = redactBlock.block.data.data[0];
+		const header = first_tx.payload.header;
+		const channel_name = header.channel_header.channel_id;
+		const redactBlockNum = [];
+		for (const transaction of redactBlock.transaction) {
+			redactBlockNum.push(transaction.block_number.toString());
+		}
+		if (redactBlock) {
+			try {
+				const block = await client.fabricGateway.queryBlock(
+					channel_name,
+					redactBlock.block.header.number.toString()
+				);
+				if (block) {
+					await this.processBlockEvent(client, block, true, true);
+				}
+			} catch {
+				logger.error(`Failed to process Block # ${redactBlock}`);
+			}
+		}
+		for (const blockNum of redactBlockNum) {
+			try {
+				const block = await client.fabricGateway.queryBlock(channel_name, blockNum);
+				if (block) {
+					await this.processBlockEvent(client, block, true, false);
+				}
+			} catch {
+				logger.error(`Failed to process Block # ${blockNum}`);
+			}
+		}
+	}
+
+	/**
+	 *
+	 *
+	 * @param {*} client
+	 * @param {*} block
+	 * @returns
+	 */
+	async processRedactTransactionEvent(client, redactTransaction) {
+		for (const transaction of redactTransaction.transaction) {
+			const channel_name = transaction.payload.header.channel_header.channel_id;
+			const block = await client.fabricGateway.queryBlock(
+				channel_name,
+				transaction.block_number
+			);
+			try {
+				if (block) {
+					await this.processBlockEvent(client, block, true, false);
+				}
+			} catch {
+				logger.error(`Failed to process Block # ${transaction.block_number}`);
+			}
+		}
+	}
+
 	convertFormatOfValue(prop, encoding, obj) {
 		if (Array.isArray(obj)) {
 			for (let idx = 0; idx < obj.length; idx++) {

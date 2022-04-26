@@ -123,10 +123,38 @@ export class SyncPlatform {
 			setTimeout(validateMissingBlocks, sync.blocksSyncTime, sync, false);
 		})(this, true);
 
+		for (const channel_name of this.client.getChannels()) {
+			const network = await this.client.fabricGateway.gateway.getNetwork(
+				channel_name
+			);
+			await network.addRedactMessageListener(
+				this.processRedactMessageEvent.bind(this)
+			);
+			// await network.addBlockListener(this.processRedactBlockEvent, {
+			// 	startBlock: 0
+			// });
+		}
+
 		logger.debug(
 			'******* Initialization end for child client process %s ******',
 			this.network_id
 		);
+	}
+
+	async processRedactMessageEvent(event) {
+		if (event.redactBlockData) {
+			await this.syncService.processRedactBlockEvent(
+				this.client,
+				event.redactBlockData
+			);
+		} else if (event.redactTransactionData) {
+			await this.syncService.processRedactTransactionEvent(
+				this.client,
+				event.redactTransactionData
+			);
+		} else {
+			logger.error('invalid redact event.');
+		}
 	}
 
 	/**
