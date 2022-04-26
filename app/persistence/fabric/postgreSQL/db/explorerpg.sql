@@ -18,12 +18,12 @@ CREATE TABLE blocks
 (
   id SERIAL PRIMARY KEY,
   blocknum integer DEFAULT NULL,
-  datahash character varying(256) DEFAULT NULL,
-  prehash character varying(256) DEFAULT NULL,
+  datahash character varying(512) DEFAULT NULL,
+  prehash character varying(512) DEFAULT NULL,
   txcount integer DEFAULT NULL,
   createdt Timestamp DEFAULT NULL,
-  prev_blockhash character varying(256) DEFAULT NULL,
-  blockhash character varying(256) DEFAULT NULL,
+  prev_blockhash character varying(512) DEFAULT NULL,
+  blockhash character varying(512) DEFAULT NULL,
   channel_genesis_hash character varying(256) DEFAULT NULL,
   blksize integer DEFAULT NULL,
   network_name varchar(255)
