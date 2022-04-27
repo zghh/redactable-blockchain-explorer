@@ -1,10 +1,10 @@
 /**
  *    SPDX-License-Identifier: Apache-2.0
  */
-import { PgService } from '../postgreSQL/PgService';
-import { helper } from '../../common/helper';
+import { PgService } from "../postgreSQL/PgService";
+import { helper } from "../../common/helper";
 
-const logger = helper.getLogger('CRUDService');
+const logger = helper.getLogger("CRUDService");
 
 /**
  *
@@ -33,7 +33,7 @@ export class CRUDService {
 		blockNum: any
 	) {
 		return this.sql.getRowByPkOne(
-			'select blocknum ,txcount from blocks where channel_genesis_hash=$1 and blocknum=$2 and network_name = $3',
+			"select blocknum ,txcount from blocks where channel_genesis_hash=$1 and blocknum=$2 and network_name = $3",
 			[channel_genesis_hash, blockNum, network_name]
 		);
 	}
@@ -47,7 +47,7 @@ export class CRUDService {
 	 * @memberof CRUDService
 	 */
 	getTransactionByID(network_name: any, channel_genesis_hash: any, txhash: any) {
-		const sqlTxById = ` select t.txhash,t.validation_code,t.payload_proposal_hash,t.creator_msp_id,t.endorser_msp_id,t.chaincodename,t.type,t.createdt,
+		const sqlTxById = ` select t.txhash,t.hash,t.randomness,t.validation_code,t.payload_proposal_hash,t.creator_msp_id,t.endorser_msp_id,t.chaincodename,t.type,t.createdt,
         t.chaincode_proposal_input,t.read_set,t.write_set,channel.name as channelName from TRANSACTIONS as t inner join channel on t.channel_genesis_hash=channel.channel_genesis_hash and t.network_name=channel.network_name
 				where t.txhash = $1 and t.network_name = $2 `;
 		return this.sql.getRowByPkOne(sqlTxById, [txhash, network_name]);
@@ -101,10 +101,10 @@ export class CRUDService {
 		const values = [blockNum, txid, channel_genesis_hash, network_name, from, to];
 
 		if (orgs && orgs.length > 0) {
-			sqlTxList += ' and t.creator_msp_id = ANY($7)';
+			sqlTxList += " and t.creator_msp_id = ANY($7)";
 			values.push(orgs);
 		}
-		sqlTxList += ' order by t.createdt desc';
+		sqlTxList += " order by t.createdt desc";
 
 		return this.sql.getRowsBySQlQuery(sqlTxList, values);
 	}
@@ -130,23 +130,23 @@ export class CRUDService {
 		orgs: string[]
 	) {
 		const values = [channel_genesis_hash, network_name, from, to];
-		let byOrgs = '';
+		let byOrgs = "";
 		if (orgs && orgs.length > 0) {
 			values.push(orgs);
-			byOrgs = ' and creator_msp_id = ANY($5)';
+			byOrgs = " and creator_msp_id = ANY($5)";
 		}
 
-		logger.debug('getBlockAndTxList.byOrgs ', byOrgs);
+		logger.debug("getBlockAndTxList.byOrgs ", byOrgs);
 
 		const sqlBlockTxList = `select a.* from  (
 	  select (select c.name from channel c where c.channel_genesis_hash =$1 and c.network_name = $2) 
-	  	as channelname, blocks.blocknum,blocks.txcount ,blocks.datahash ,blocks.blockhash ,blocks.prehash,blocks.createdt, blocks.blksize, (
+	  	as channelname, blocks.blocknum,blocks.txcount ,blocks.datahash ,blocks.blockhash ,blocks.randomness ,blocks.prehash,blocks.createdt, blocks.blksize, (
         SELECT  array_agg(txhash) as txhash FROM transactions where blockid = blocks.blocknum ${byOrgs} and 
          channel_genesis_hash = $1 and network_name = $2 and createdt between $3 and $4) from blocks where
          blocks.channel_genesis_hash =$1 and blocks.network_name = $2 and blocknum >= 0 and blocks.createdt between $3 and $4
 									order by blocks.blocknum desc)  a where  a.txhash IS NOT NULL`;
 
-		logger.debug('sqlBlockTxList ', sqlBlockTxList);
+		logger.debug("sqlBlockTxList ", sqlBlockTxList);
 
 		return this.sql.getRowsBySQlQuery(sqlBlockTxList, values);
 	}
@@ -161,7 +161,7 @@ export class CRUDService {
 
 	async getChannelConfig(network_name: any, channel_genesis_hash: any) {
 		const channelConfig = await this.sql.getRowsBySQlCase(
-			' select * from channel where channel_genesis_hash =$1 and network_name = $2 ',
+			" select * from channel where channel_genesis_hash =$1 and network_name = $2 ",
 			[channel_genesis_hash, network_name]
 		);
 		return channelConfig;
@@ -181,7 +181,7 @@ export class CRUDService {
 		channel_genesis_hash: any
 	) {
 		const channel = await this.sql.getRowsBySQlCase(
-			' select * from channel where name=$1 and channel_genesis_hash=$2 and network_name = $3 ',
+			" select * from channel where name=$1 and channel_genesis_hash=$2 and network_name = $3 ",
 			[channelname, channel_genesis_hash, network_name]
 		);
 		return channel;
@@ -195,7 +195,7 @@ export class CRUDService {
 	 */
 	async existChannel(network_name: any, channelname: any) {
 		const channel = await this.sql.getRowsBySQlCase(
-			' select count(1) from channel where name=$1 and network_name = $2 ',
+			" select count(1) from channel where name=$1 and network_name = $2 ",
 			[channelname, network_name]
 		);
 		return channel;
@@ -226,14 +226,14 @@ export class CRUDService {
 
 		if (isValidRow(c)) {
 			block.network_name = network_name;
-			await this.sql.saveRow('blocks', block);
+			await this.sql.saveRow("blocks", block);
 			await this.sql.updateBySql(
 				`update channel set blocks =blocks+1 where channel_genesis_hash=$1 and network_name = $2 `,
 				[block.channel_genesis_hash, network_name]
 			);
 			return true;
 		} else {
-			await this.sql.updateRow('blocks', block, { blocknum: block.blocknum });
+			await this.sql.updateRow("blocks", block, { blocknum: block.blocknum });
 			return true;
 		}
 
@@ -251,7 +251,7 @@ export class CRUDService {
 	 */
 	async saveTransaction(network_name, transaction) {
 		const c = await this.sql.getRowByPkOne(
-			'select count(1) as c from transactions where blockid=$1 and txhash=$2 and channel_genesis_hash=$3 and network_name=$4 ',
+			"select count(1) as c from transactions where blockid=$1 and txhash=$2 and channel_genesis_hash=$3 and network_name=$4 ",
 			[
 				transaction.blockid,
 				transaction.txhash,
@@ -262,18 +262,18 @@ export class CRUDService {
 
 		if (isValidRow(c)) {
 			transaction.network_name = network_name;
-			await this.sql.saveRow('transactions', transaction);
+			await this.sql.saveRow("transactions", transaction);
 			await this.sql.updateBySql(
-				'update chaincodes set txcount =txcount+1 where channel_genesis_hash=$1 and network_name=$2 and name=$3 ',
+				"update chaincodes set txcount =txcount+1 where channel_genesis_hash=$1 and network_name=$2 and name=$3 ",
 				[transaction.channel_genesis_hash, network_name, transaction.chaincodename]
 			);
 			await this.sql.updateBySql(
-				'update channel set trans =trans+1 where channel_genesis_hash=$1 and network_name=$2 ',
+				"update channel set trans =trans+1 where channel_genesis_hash=$1 and network_name=$2 ",
 				[transaction.channel_genesis_hash, network_name]
 			);
 			return true;
 		} else {
-			await this.sql.updateRow('transactions', transaction, {
+			await this.sql.updateRow("transactions", transaction, {
 				txhash: transaction.txhash
 			});
 			return true;
@@ -291,16 +291,16 @@ export class CRUDService {
 	 */
 	async deleteTransactionFromBlock(network_name, blockNum) {
 		const c = await this.sql.getRowByPkOne(
-			'select count(*) as c from transactions where blockid=$1 and network_name=$2 ',
+			"select count(*) as c from transactions where blockid=$1 and network_name=$2 ",
 			[blockNum, network_name]
 		);
 		await this.sql.updateBySql(
-			'delete from transactions where blockid=$1 and network_name=$2 ',
+			"delete from transactions where blockid=$1 and network_name=$2 ",
 			[blockNum, network_name]
 		);
 		await this.sql.updateBySql(
-			'update channel set trans =trans-$1 where network_name=$2 ',
-			[parseInt(c['c']), network_name]
+			"update channel set trans =trans-$1 where network_name=$2 ",
+			[parseInt(c["c"]), network_name]
 		);
 	}
 
@@ -313,7 +313,7 @@ export class CRUDService {
 	 */
 	async deleteBlock(network_name, blockNum) {
 		await this.sql.updateBySql(
-			'delete from blocks where blocknum=$1 and network_name=$2 ',
+			"delete from blocks where blocknum=$1 and network_name=$2 ",
 			[blockNum, network_name]
 		);
 	}
@@ -329,7 +329,7 @@ export class CRUDService {
 		let curBlockNum;
 		try {
 			const row: any = await this.sql.getRowsBySQlCase(
-				'select max(blocknum) as blocknum from blocks  where channel_genesis_hash=$1 and network_name = $2 ',
+				"select max(blocknum) as blocknum from blocks  where channel_genesis_hash=$1 and network_name = $2 ",
 				[channel_genesis_hash, network_name]
 			);
 
@@ -368,7 +368,7 @@ export class CRUDService {
 
 		if (isValidRow(c)) {
 			chaincode.network_name = network_name;
-			await this.sql.saveRow('chaincodes', chaincode);
+			await this.sql.saveRow("chaincodes", chaincode);
 		}
 	}
 	/* eslint-enable */
@@ -382,7 +382,7 @@ export class CRUDService {
 	 */
 	getChannelByGenesisBlockHash(network_name, channel_genesis_hash) {
 		return this.sql.getRowByPkOne(
-			'select name from channel where channel_genesis_hash=$1 and network_name = $2 ',
+			"select name from channel where channel_genesis_hash=$1 and network_name = $2 ",
 			[channel_genesis_hash, network_name]
 		);
 	}
@@ -395,7 +395,7 @@ export class CRUDService {
 	 */
 	async saveChaincodPeerRef(network_name, peers_ref_chaincode) {
 		const c = await this.sql.getRowByPkOne(
-			'select count(1) as c from peer_ref_chaincode prc where prc.peerid=$1 and prc.chaincodeid=$2 and cc_version=$3 and channelid=$4 and network_name = $5 ',
+			"select count(1) as c from peer_ref_chaincode prc where prc.peerid=$1 and prc.chaincodeid=$2 and cc_version=$3 and channelid=$4 and network_name = $5 ",
 			[
 				peers_ref_chaincode.peerid,
 				peers_ref_chaincode.chaincodeid,
@@ -407,7 +407,7 @@ export class CRUDService {
 
 		if (isValidRow(c)) {
 			peers_ref_chaincode.network_name = network_name;
-			await this.sql.saveRow('peer_ref_chaincode', peers_ref_chaincode);
+			await this.sql.saveRow("peer_ref_chaincode", peers_ref_chaincode);
 		}
 	}
 
@@ -419,12 +419,12 @@ export class CRUDService {
 	 */
 	async saveChannel(network_name, channel) {
 		const c = await this.sql.getRowByPkOne(
-			'select count(1) as c from channel where name=$1 and channel_genesis_hash=$2 and network_name = $3 ',
+			"select count(1) as c from channel where name=$1 and channel_genesis_hash=$2 and network_name = $3 ",
 			[channel.name, channel.channel_genesis_hash, network_name]
 		);
 
 		if (isValidRow(c)) {
-			await this.sql.saveRow('channel', {
+			await this.sql.saveRow("channel", {
 				name: channel.name,
 				createdt: channel.createdt,
 				blocks: channel.blocks,
@@ -435,7 +435,7 @@ export class CRUDService {
 			});
 		} else {
 			await this.sql.updateBySql(
-				'update channel set blocks=$1,trans=$2,channel_hash=$3 where name=$4 and channel_genesis_hash=$5 and network_name = $6 ',
+				"update channel set blocks=$1,trans=$2,channel_hash=$3 where name=$4 and channel_genesis_hash=$5 and network_name = $6 ",
 				[
 					channel.blocks,
 					channel.trans,
@@ -456,13 +456,13 @@ export class CRUDService {
 	 */
 	async savePeer(network_name, peer) {
 		const c = await this.sql.getRowByPkOne(
-			'select count(1) as c from peer where channel_genesis_hash=$1 and network_name = $2 and server_hostname=$3 ',
+			"select count(1) as c from peer where channel_genesis_hash=$1 and network_name = $2 and server_hostname=$3 ",
 			[peer.channel_genesis_hash, network_name, peer.server_hostname]
 		);
 
 		if (isValidRow(c)) {
 			peer.network_name = network_name;
-			await this.sql.saveRow('peer', peer);
+			await this.sql.saveRow("peer", peer);
 		}
 	}
 
@@ -474,13 +474,13 @@ export class CRUDService {
 	 */
 	async savePeerChannelRef(network_name, peers_ref_Channel) {
 		const c = await this.sql.getRowByPkOne(
-			'select count(1) as c from peer_ref_channel prc where prc.peerid = $1 and network_name = $2 and prc.channelid=$3 ',
+			"select count(1) as c from peer_ref_channel prc where prc.peerid = $1 and network_name = $2 and prc.channelid=$3 ",
 			[peers_ref_Channel.peerid, network_name, peers_ref_Channel.channelid]
 		);
 
 		if (isValidRow(c)) {
 			peers_ref_Channel.network_name = network_name;
-			await this.sql.saveRow('peer_ref_channel', peers_ref_Channel);
+			await this.sql.saveRow("peer_ref_channel", peers_ref_Channel);
 		}
 	}
 
@@ -510,12 +510,12 @@ export class CRUDService {
 	 */
 	async saveOrderer(network_name, orderer) {
 		const c = await this.sql.getRowByPkOne(
-			'select count(1) as c from orderer where requests=$1 and network_name = $2 ',
+			"select count(1) as c from orderer where requests=$1 and network_name = $2 ",
 			[orderer.requests, network_name]
 		);
 		if (isValidRow(c)) {
 			orderer.network_name = network_name;
-			await this.sql.saveRow('orderer', orderer);
+			await this.sql.saveRow("orderer", orderer);
 		}
 	}
 	// Orderer BE-303
@@ -530,7 +530,7 @@ export class CRUDService {
 function isValidRow(rowResult) {
 	if (rowResult) {
 		const val = rowResult.c;
-		if (val === 0 || val === '0') {
+		if (val === 0 || val === "0") {
 			return true;
 		}
 	}

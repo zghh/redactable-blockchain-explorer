@@ -2,20 +2,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as convertHex from 'convert-hex';
-import fabprotos from 'fabric-protos';
-import includes from 'lodash/includes';
-import * as sha from 'js-sha256';
-import { helper } from '../../../common/helper';
+import * as convertHex from "convert-hex";
+import fabprotos from "fabric-protos";
+import includes from "lodash/includes";
+import * as sha from "js-sha256";
+import { helper } from "../../../common/helper";
 
-import { ExplorerError } from '../../../common/ExplorerError';
-import { explorerError } from '../../../common/ExplorerMessage';
-import * as FabricConst from '../../../platform/fabric/utils/FabricConst';
-import * as FabricUtils from '../../../platform/fabric/utils/FabricUtils';
+import { ExplorerError } from "../../../common/ExplorerError";
+import { explorerError } from "../../../common/ExplorerMessage";
+import * as FabricConst from "../../../platform/fabric/utils/FabricConst";
+import * as FabricUtils from "../../../platform/fabric/utils/FabricUtils";
 
-const fabproto6 = require('fabric-protos');
+const fabproto6 = require("fabric-protos");
 
-const logger = helper.getLogger('SyncServices');
+const logger = helper.getLogger("SyncServices");
 
 const fabric_const = FabricConst.fabric.const;
 
@@ -69,7 +69,7 @@ export class SyncServices {
 		const channels = client.getChannels();
 		const channels_query = await client.fabricGateway.queryChannels();
 		if (!channels_query) {
-			logger.error('Not found any channels');
+			logger.error("Not found any channels");
 			return false;
 		}
 
@@ -82,9 +82,9 @@ export class SyncServices {
 
 		for (const channel_name of channels) {
 			logger.info(
-				'SyncServices.synchNetworkConfigToDB client ',
+				"SyncServices.synchNetworkConfigToDB client ",
 				client.getNetworkId(),
-				' channel_name ',
+				" channel_name ",
 				channel_name
 			);
 
@@ -137,7 +137,7 @@ export class SyncServices {
 			const count = await this.persistence
 				.getCrudService()
 				.existChannel(network_id, channel_name);
-			if (count.count === '0') {
+			if (count.count === "0") {
 				if (block.data && block.data.data.length > 0 && block.data.data[0]) {
 					const createdt = await FabricUtils.getBlockTimeStamp(
 						block.data.data[0].payload.header.channel_header.timestamp
@@ -147,7 +147,7 @@ export class SyncServices {
 						createdt,
 						blocks: 0,
 						trans: 0,
-						channel_hash: '',
+						channel_hash: "",
 						channel_version: block.data.data[0].payload.header.channel_header.version,
 						channel_genesis_hash
 					};
@@ -227,7 +227,7 @@ export class SyncServices {
 			requests: peer.endpoint,
 			server_hostname: peer.endpoint,
 			channel_genesis_hash,
-			peer_type: 'PEER'
+			peer_type: "PEER"
 		};
 		await this.persistence.getCrudService().savePeer(network_id, peer_row);
 		const channel_peer_row = {
@@ -252,9 +252,9 @@ export class SyncServices {
 		const discoveryProtocol = client.fabricGateway.getDiscoveryProtocol();
 		const requesturl = `${orderer.host}:${orderer.port}`;
 		logger.debug(
-			'insertNewOrderers discoveryProtocol ',
+			"insertNewOrderers discoveryProtocol ",
 			discoveryProtocol,
-			' requesturl ',
+			" requesturl ",
 			requesturl
 		);
 
@@ -263,7 +263,7 @@ export class SyncServices {
 			requests: requesturl,
 			server_hostname: requesturl,
 			channel_genesis_hash,
-			peer_type: 'ORDERER'
+			peer_type: "ORDERER"
 		};
 		await this.persistence.getCrudService().savePeer(network_id, orderer_row);
 		const channel_orderer_row = {
@@ -295,7 +295,7 @@ export class SyncServices {
 			channel_name
 		);
 		for (const chaincode of chaincodes.chaincodes) {
-			let path = '-';
+			let path = "-";
 			if (chaincode.path !== undefined) {
 				path = chaincode.path;
 			}
@@ -400,7 +400,7 @@ export class SyncServices {
 				}
 			}
 		} else {
-			logger.debug('Missing blocks not found for %s', channel_name);
+			logger.debug("Missing blocks not found for %s", channel_name);
 		}
 		const index = this.synchInProcess.indexOf(synch_key);
 		this.synchInProcess.splice(index, 1);
@@ -467,7 +467,7 @@ export class SyncServices {
 		const channel_name = header.channel_header.channel_id;
 		const blockPro_key = `${channel_name}_${block.header.number.toString()}`;
 
-		logger.debug('New Block  >>>>>>> %j', block.header.number);
+		logger.debug("New Block  >>>>>>> %j", block.header.number);
 		const channel_genesis_hash = client.getChannelGenHash(channel_name);
 		// Checking block is channel CONFIG block
 		/* eslint-disable */
@@ -482,12 +482,12 @@ export class SyncServices {
 				channel_name,
 				block
 			);
-			logger.warn('Insert discovered new channel', channel_name);
+			logger.warn("Insert discovered new channel", channel_name);
 			throw new ExplorerError(`${channel_name} has not been inserted yet`);
 		}
 
 		if (this.blocksInProcess.includes(blockPro_key)) {
-			throw new ExplorerError('Block already in processing');
+			throw new ExplorerError("Block already in processing");
 		}
 		this.blocksInProcess.push(blockPro_key);
 
@@ -521,11 +521,12 @@ export class SyncServices {
 		const blockhash = await FabricUtils.generateBlockHash(block.header);
 		const block_row = {
 			blocknum: block.header.number.toString(),
-			datahash: block.header.data_hash.toString('hex'),
-			prehash: block.header.previous_hash.toString('hex'),
+			datahash: block.header.data_hash.toString("hex"),
+			prehash: block.header.previous_hash.toString("hex"),
+			randomness: block.header.randomness.toString("hex"),
 			txcount: block.data.data.length,
 			createdt,
-			prev_blockhash: '',
+			prev_blockhash: "",
 			blockhash,
 			channel_genesis_hash,
 			blksize: jsonObjSize(block)
@@ -539,12 +540,12 @@ export class SyncServices {
 			const size = Buffer.byteLength(txStr);
 			let txid = txObj.payload.header.channel_header.tx_id;
 
-			let validation_code = '';
-			let endorser_signature = '';
-			let payload_proposal_hash = '';
-			let endorser_id_bytes = '';
-			let chaincode_proposal_input = '';
-			let chaincode = '';
+			let validation_code = "";
+			let endorser_signature = "";
+			let payload_proposal_hash = "";
+			let endorser_id_bytes = "";
+			let chaincode_proposal_input = "";
+			let chaincode = "";
 			let rwset;
 			let readSet;
 			let writeSet;
@@ -553,11 +554,11 @@ export class SyncServices {
 			let mspId = [];
 
 			this.convertFormatOfValue(
-				'value',
+				"value",
 				client.fabricGateway.fabricConfig.getRWSetEncoding(),
 				txObj
 			);
-			if (txid && txid !== '') {
+			if (txid && txid !== "") {
 				const validation_codes =
 					block.metadata.metadata[
 						fabprotos.common.BlockMetadataIndex.TRANSACTIONS_FILTER
@@ -608,16 +609,16 @@ export class SyncServices {
 					txObj.payload.data.actions[0].payload.chaincode_proposal_payload.input
 						.chaincode_spec.input.args;
 				if (chaincode_proposal_input !== undefined) {
-					let inputs = '';
-					if (chaincode == 'lscc') {
+					let inputs = "";
+					if (chaincode == "lscc") {
 						const cds = fabproto6.protos.ChaincodeDeploymentSpec.decode(
 							chaincode_proposal_input[2]
 						);
 						inputs =
 							chaincode_proposal_input[0].toString() +
-							',' +
+							"," +
 							chaincode_proposal_input[1].toString() +
-							',' +
+							"," +
 							cds.chaincode_spec.input.args.toString();
 					} else {
 						inputs = chaincode_proposal_input.toString();
@@ -630,14 +631,14 @@ export class SyncServices {
 					endorser_signature = convertHex.bytesToHex(endorser_signature);
 				}
 				payload_proposal_hash = txObj.payload.data.actions[0].payload.action.proposal_response_payload.proposal_hash.toString(
-					'hex'
+					"hex"
 				);
 				endorser_id_bytes =
 					txObj.payload.data.actions[0].payload.action.endorsements[0].endorser
 						.IdBytes;
 			}
 
-			if (txObj.payload.header.channel_header.typeString === 'CONFIG') {
+			if (txObj.payload.header.channel_header.typeString === "CONFIG") {
 				txid = sha.sha256(txStr);
 				readSet =
 					txObj.payload.data.last_update.payload?.data.config_update.read_set;
@@ -646,7 +647,7 @@ export class SyncServices {
 			}
 
 			if (
-				txObj.payload.header.channel_header.typeString === 'REDACT_TRANSACTION'
+				txObj.payload.header.channel_header.typeString === "REDACT_TRANSACTION"
 			) {
 				rwset =
 					txObj.payload.data.transaction[0].payload.data.actions[0].payload.action
@@ -663,7 +664,7 @@ export class SyncServices {
 					redactBlockNum.push(transaction.block_number);
 				}
 			} else if (
-				txObj.payload.header.channel_header.typeString === 'REDACT_BLOCK'
+				txObj.payload.header.channel_header.typeString === "REDACT_BLOCK"
 			) {
 				redactBlock = txObj.payload.data.block.header.number.toString();
 				for (const transaction of txObj.payload.data.transaction) {
@@ -708,6 +709,8 @@ export class SyncServices {
 			const transaction_row = {
 				blockid: block.header.number.toString(),
 				txhash: txid,
+				hash: txObj.hash.toString("hex"),
+				randomness: txObj.randomness.toString("hex"),
 				createdt: txObj.payload.header.channel_header.timestamp,
 				chaincodename: chaincode,
 				chaincode_id,
@@ -734,15 +737,15 @@ export class SyncServices {
 			const res = await this.persistence
 				.getCrudService()
 				.saveTransaction(network_id, transaction_row);
-			logger.debug('saveTransaction ', res);
+			logger.debug("saveTransaction ", res);
 		}
 
 		// Insert block
-		logger.info('block_row.blocknum ', block_row.blocknum);
+		logger.info("block_row.blocknum ", block_row.blocknum);
 		const successSaveBlock = await this.persistence
 			.getCrudService()
 			.saveBlock(network_id, block_row);
-		logger.debug('result of SaveBlock ', successSaveBlock);
+		logger.debug("result of SaveBlock ", successSaveBlock);
 
 		if (successSaveBlock) {
 			// Push last block
@@ -751,13 +754,13 @@ export class SyncServices {
 				network_id,
 				channel_name,
 				title: `Block ${block.header.number.toString()} added to Channel: ${channel_name}`,
-				type: 'block',
+				type: "block",
 				message: `Block ${block.header.number.toString()} established with ${
 					block.data.data.length
 				} tx`,
 				time: createdt,
 				txcount: block.data.data.length,
-				datahash: block.header.data_hash.toString('hex'),
+				datahash: block.header.data_hash.toString("hex"),
 				blksize: block_row.blksize
 			};
 
@@ -863,7 +866,7 @@ export class SyncServices {
 			for (let idx = 0; idx < obj.length; idx++) {
 				this.convertFormatOfValue(prop, encoding, obj[idx]);
 			}
-		} else if (!Buffer.isBuffer(obj) && typeof obj === 'object') {
+		} else if (!Buffer.isBuffer(obj) && typeof obj === "object") {
 			// Each element of array of Buffer is excluded by the 1st condition
 			Object.keys(obj).forEach(key => {
 				if (key === prop && Buffer.isBuffer(obj[key])) {
@@ -898,7 +901,7 @@ export class SyncServices {
 }
 // Transaction validation code
 function convertValidationCode(code) {
-	if (typeof code === 'string') {
+	if (typeof code === "string") {
 		return code;
 	}
 	return _validation_codes[code];
@@ -911,21 +914,21 @@ function jsonObjSize(json) {
 	function sizeOf(obj) {
 		if (obj !== null && obj !== undefined) {
 			switch (typeof obj) {
-				case 'number': {
+				case "number": {
 					bytes += 8;
 					break;
 				}
-				case 'string': {
+				case "string": {
 					bytes += obj.length;
 					break;
 				}
-				case 'boolean': {
+				case "boolean": {
 					bytes += 4;
 					break;
 				}
-				case 'object': {
+				case "object": {
 					const objClass = Object.prototype.toString.call(obj).slice(8, -1);
-					if (objClass === 'Object' || objClass === 'Array') {
+					if (objClass === "Object" || objClass === "Array") {
 						for (const key in obj) {
 							if (!Object.prototype.hasOwnProperty.call(obj, key)) continue;
 							sizeOf(obj[key]);
