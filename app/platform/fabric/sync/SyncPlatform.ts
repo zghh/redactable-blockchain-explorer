@@ -152,6 +152,11 @@ export class SyncPlatform {
 				this.client,
 				event.redactTransactionData
 			);
+		} else if (event.revokeTransactionData) {
+			await this.syncService.processRevokeTransactionEvent(
+				this.client,
+				event.revokeTransactionData
+			);
 		} else {
 			logger.error('invalid redact event.');
 		}

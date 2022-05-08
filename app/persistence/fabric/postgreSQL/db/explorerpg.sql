@@ -161,6 +161,7 @@ CREATE TABLE transactions
   txhash character varying(256) DEFAULT NULL,
   hash character varying(512) DEFAULT NULL,
   randomness character varying(1024) DEFAULT NULL,
+  redactor character varying DEFAULT NULL,
   createdt timestamp DEFAULT NULL,
   chaincodename character varying(255) DEFAULT NULL,
   status integer DEFAULT NULL,
